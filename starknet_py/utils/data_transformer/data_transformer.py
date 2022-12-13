@@ -12,7 +12,6 @@ from typing import (
     cast,
     Union,
 )
-from collections import namedtuple
 import itertools
 
 from starkware.cairo.lang.compiler.ast.cairo_types import (
@@ -41,61 +40,10 @@ from starknet_py.utils.data_transformer.errors import (
     InvalidValueException,
     InvalidTypeException,
 )
+from starknet_py.utils.wrapped_named_tuple import WrappedNamedTuple
 
 ABIFunctionEntry = Dict
 CairoData = List[int]
-
-
-class Result:
-    def __init__(self, tuple_value: NamedTuple, name_mapping: Dict, dict_value: Dict):
-        self.tuple_value = tuple_value
-        self.name_mapping = name_mapping
-        self.dict_value = dict_value
-
-    def __eq__(self, other):
-        return self.tuple_value == other
-
-    def __getattr__(self, item):
-        return getattr(self.tuple_value, self.name_mapping[item])
-
-    def __getitem__(self, item):
-        return self.tuple_value[item]
-
-    def __iter__(self):
-        return self.tuple_value.__iter__()
-
-    def __str__(self):
-        result = ", ".join(
-            f"{name}={getattr(self.tuple_value, key)}"
-            for name, key in self.name_mapping.items()
-        )
-        return f"Result({result})"
-
-    def __repr__(self):
-        return self.__str__()
-
-    def _asdict(self):
-        return self.dict_value
-
-
-def construct_result_object(result: dict) -> NamedTuple:
-    fields = result.keys()
-    named_tuple_class = namedtuple(
-        field_names=fields,
-        typename="Result",
-        rename=True,
-    )
-    # pylint: disable=protected-access
-    name_mapping = dict(zip(fields, named_tuple_class._fields))
-    dict_value = {name_mapping[key]: value for key, value in result.items()}
-    tuple_value = named_tuple_class(**dict_value)
-
-    return cast(
-        NamedTuple,
-        Result(
-            tuple_value=tuple_value, name_mapping=name_mapping, dict_value=dict_value
-        ),
-    )  # We pretend Result is a named tuple
 
 
 def read_from_cairo_data(
@@ -281,7 +229,7 @@ class TupleTransformer(TypeTransformer[TypeTuple, Tuple]):
             )
             result[name] = transformed
 
-        res = construct_result_object(result)
+        res = WrappedNamedTuple.from_dict(result)
         return res, values
 
 
@@ -444,7 +392,7 @@ class CairoSerializer:
                 f"Too many values provided, expected {initial_len - len(values)} got {initial_len}."
             )
 
-        return construct_result_object(result)
+        return WrappedNamedTuple.from_dict(result)
 
     def _abi_to_types(self, abi_list) -> dict:
         return self._remove_array_lengths(

@@ -4,13 +4,13 @@ from starkware.starknet.public.abi_structs import identifier_manager_from_abi
 
 from starknet_py.utils.data_transformer.data_transformer import (
     FunctionCallSerializer,
-    construct_result_object,
 )
 from starknet_py.cairo.felt import decode_shortstring
 from starknet_py.utils.data_transformer.errors import (
     InvalidValueException,
     InvalidTypeException,
 )
+from starknet_py.utils.wrapped_named_tuple import WrappedNamedTuple
 
 
 def transformer_for_function(inputs=None, outputs=None, structs=None):
@@ -653,7 +653,7 @@ def test_allow_underscores_in_abi():
     ],
 )
 def test_result_warpper_as_str(result_dict, expected):
-    assert str(construct_result_object(result_dict)) == expected
+    assert str(WrappedNamedTuple.from_dict(result_dict)) == expected
 
 
 @pytest.mark.parametrize(
@@ -673,5 +673,5 @@ def test_result_warpper_as_str(result_dict, expected):
 )
 def test_result_wrapper_repr(result_dict, expected):
     # pylint: disable=unused-argument
-    result = construct_result_object(result_dict)
+    result = WrappedNamedTuple.from_dict(result_dict)
     assert str(result) == repr(result)
